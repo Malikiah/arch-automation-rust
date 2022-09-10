@@ -1,5 +1,4 @@
-use std::process::Command;
-use std::process::Stdio;
+use std::process::{Command, Stdio};
 use std::fs;
 use std::str;
 use std::fmt::{Debug};
@@ -7,6 +6,7 @@ use std::fmt::{Debug};
 //use std::str::FromStr;
 use structopt::StructOpt;
 use regex::Regex;
+use std::{thread};
 
 // use std::env;
 // fn type_of(_: T) -> &'static str {
@@ -16,11 +16,15 @@ use regex::Regex;
 #[structopt(name = "Arch Automation")]
 
 struct Opt {
+
     #[structopt(short = "i", long = "installation-type")]
     installation_type: Option<String>,
 
     #[structopt(short = "e", long = "encrypt")]
     encrypt: bool,
+    
+    #[structopt(short = "p", long = "password")]
+    password: Option<String>,
 
     #[structopt(short = "l", long = "lvm")]
     lvm: bool,
@@ -28,7 +32,7 @@ struct Opt {
     #[structopt(short = "d", long = "device")]
     device: Option<String>,
 
-    #[structopt(short = "p", long = "package-list", name = "FILE", required_if("out-type", "file"))]
+    #[structopt(short = "f", long = "package-file")]
     file_name: Option<String>,
 
 }
@@ -89,39 +93,32 @@ impl Packages {
     }
 
     fn install(packages: Vec<&str>, package_manager: &str) {
-
-        if package_manager == "pacman" {
-                for package in packages.iter() {
+        let packages = packages.clone();
+        let package_manager = package_manager.clone();
+        for package in packages.iter() {
+            if package_manager == "pacman" {
                     Command::new("pacman")
                         .arg("-Sy")
                         .arg("--noconfirm")
                         .arg(package)
                         // spawn is for running a command and not waiting for it to finish.
                         // .spawn()
-                        .status()
-                        .expect("pacman command failed to start");
-                    }
-        } else if package_manager == "pacstrap" {
-                for package in packages.iter() {
+                        .status().expect("pacman command failed to start");
+            } else if package_manager == "pacstrap" {
                     Command::new("pacstrap")
                         .arg("/mnt")
                         .arg(package)
-                        .status()
-                        .expect("pacman command failed to start");
-                    }
-        } else if package_manager == "yay" {
-                for package in packages.iter() {
+                        .arg("--noconfirm")
+                        .status().expect("pacstrap command failed to start");
+            } else if package_manager == "yay" {
                     Command::new("yay")
                         .arg("-Sy")
                         .arg("--noconfirm")
                         .arg(package)
-                        .status()
-                        .expect("pacman command failed to start");
-                    }
+                        .status().expect("yay command failed to start");
+            }
         }
-
     }
-
 }
     
 
@@ -200,6 +197,18 @@ struct Partition {
 impl Partition {
 
     fn create_system(opts: &Opt) {
+
+        Command::new("cryptsetup")
+            .arg("close")
+            .arg("crypt")
+            .status().expect("cryptsetup");
+
+        Command::new("umount")
+            .arg("/mnt/home")
+            .arg("/mnt/boot")
+            .arg("/mnt")
+            .status().expect("umount failed to start");
+
         let system_partition = SystemPartition{ 
             boot_partition: Partition{
                 size: String::from("+512M"),
@@ -208,40 +217,33 @@ impl Partition {
                 device: String::from(opts.device.as_ref().unwrap()),
             },
             root_partition: Partition{
-                size: String::from("0"),
+                size: String::from("-0"),
                 typecode: String::from("8e00"),
                 label: String::from("LVM"),
                 device: String::from(opts.device.as_ref().unwrap()),
             }
         };
-//        let boot_partition = Partition{
-//                size: String::from("+512M"),
-//                typecode: String::from("ef00"),
-//                label: String::from("EFI"),
-//                device: String::from(opts.device.as_ref().unwrap()),
-//            };
-//        let root_partition = Partition{
-//                size: String::from("0"),
-//                typecode: String::from("8e00"),
-//                label: String::from("LVM"),
-//                device: String::from(opts.device.as_ref().unwrap()),
-//            };
+
         let partition_vector = vec![&system_partition.boot_partition, &system_partition.root_partition];
+
+        Command::new("sgdisk")
+            .arg("-Z")
+            .arg(opts.device.as_ref().unwrap())
+            .status().expect("sgdisk failed to start");
+
         for (i, partition) in partition_vector.iter().enumerate() {
             println!("sudo sgdisk -n {}:{:} --typecode={}:{:} --change-name={}:{:} {:}", i+1, partition.size, i+1, partition.typecode, i+1, partition.label, partition.device);
-//            Command::new("sgdisk")
-//                .arg(format!("-n {}:{:?}", i+1, partition.size))
-//                .arg(format!("--typecode={}:{:}", i+1, partition.typecode)
-//                .arg(format!("--change-name={}:{:}", i+1, partition.label)
-//                .arg(format!("{:#?}", partition.device)
-//                .status() 
-//                .expect("sgdisk failed to start");
-                
+            Command::new("sgdisk")
+                .arg(format!("-n {}:{:}", i+1, partition.size))
+                .arg(format!("--typecode={}:{:}", i+1, partition.typecode))
+                .arg(format!("--change-name={}:{:}", i+1, partition.label))
+                .arg(format!("{:}", partition.device))
+                .status().expect("sgdisk failed to start");
         }
 
         Command::new("mkfs.fat")
             .arg("-F32")
-            .arg(format!("{:}1", system_partition.boot_partition.device))
+            .arg(format!("{:}2", system_partition.boot_partition.device))
             .status()
             .expect("mkfs.fat failed to start");
         if opts.encrypt == true { Partition::encrypt(&opts); }
@@ -249,7 +251,7 @@ impl Partition {
         //mkfs.fat -F32 system_partition.boot_partition
         //call encrypt if encrypt is true
         //call lvm if lvm is true
-        let pacstrap_packages = vec!["linux", "linux-firmware", "nvim", "amd-ucode", "lvm2"];
+        let pacstrap_packages = vec!["base", "base-devel", "linux", "linux-firmware", "nvim", "amd-ucode", "lvm2", "archlinux-keyring"];
         Packages::install(pacstrap_packages, "pacstrap");
         //call pacstrap
         //genfstab -U /mnt >> /mnt/etc/fstab
@@ -288,35 +290,41 @@ impl Partition {
     }
 
     fn encrypt(opts: &Opt) {
+
+
+        let echo = Command::new("echo")
+            .arg("-n") 
+            .arg(format!(r#"{}"#, opts.password.as_ref().unwrap()))
+            .stdout(Stdio::piped())
+            .spawn().expect("echo failed to start");
+
         Command::new("cryptsetup")
             .arg("-q")
             .arg("--verbose")
             .arg("luksFormat")
-            .arg(format!("{:#?}", opts.device))
-            .status() 
-            .expect("cryptsetup failed to start");
+            .arg(format!("{:}1", opts.device.as_ref().unwrap()))
+            .arg("-")
+            .stdin(echo.stdout.unwrap())
+            .output().expect("cryptsetup failed to start");
 
-        match opts.lvm {
-            true => { Command::new("crypsetup")
-                        .arg("open")
-                        .arg(format!("{:#?}", opts.device))
-                        .arg("cryptlvm")
-                        .status() 
-                        .expect("cryptsetup failed to start");
-            },
-            false => { Command::new("crypsetup")
-                        .arg("open")
-                        .arg(format!("{:#?}", opts.device))
-                        .arg("crypt")
-                        .status()
-                        .expect("cryptsetup failed to start");
-            },
-        }
+        let echo = Command::new("echo")
+            .arg("-n") 
+            .arg(format!(r#"{}"#, opts.password.as_ref().unwrap()))
+            .stdout(Stdio::piped())
+            .spawn().expect("echo failed to start");
+
+        Command::new("cryptsetup")
+            .arg("open")
+            .arg(format!("{:}1", opts.device.as_ref().unwrap()))
+            .arg("crypt")
+            .arg("-")
+            .stdin(echo.stdout.unwrap())
+            .status().expect("cryptsetup failed to start");
     }
-            
+
     fn lvm (opts: &Opt) {
-        // pvcreate /dev/mapper/cryptlvm
-        // vgreate vg1 /dev/mapper/cryptlvm
+        // pvcreate /dev/mapper/crypt
+        // vgreate vg1 /dev/mapper/crypt
         // lvcreate -l 10%VG -n root vg1
         // lvcreate -l 100%FREE -n home vg1
         // mkfs.ext4 /dev/vg1/root
@@ -327,6 +335,66 @@ impl Partition {
         // mkdir /mnt/boot
         // mount opts.device1 /mnt/boot
         //
+        Command::new("pvcreate")
+            .arg("/dev/mapper/crypt")
+            .status()
+            .expect("pvcreate failed to start");
+
+        Command::new("vgcreate")
+            .arg("vg1")
+            .arg("/dev/mapper/crypt")
+            .status()
+            .expect("vgcreate failed to start");
+
+        Command::new("lvcreate")
+            .arg("-l")
+            .arg("10%VG")
+            .arg("-n")
+            .arg("root")
+            .arg("vg1")
+            .status()
+            .expect("lvcreate failed to start");
+
+        Command::new("lvcreate")
+            .arg("-l")
+            .arg("100%FREE")
+            .arg("-n")
+            .arg("home")
+            .arg("vg1")
+            .status().expect("lvcreate failed to start");
+
+        Command::new("mkfs.ext4")
+            .arg("-F")
+            .arg("/dev/vg1/root")
+            .status().expect("mkfs.ext4 failed to start");
+        
+        Command::new("mkfs.ext4")
+            .arg("-F")
+            .arg("/dev/vg1/home")
+            .status().expect("mkfs.ext4 failed to start");
+
+        Command::new("mount")
+            .arg("/dev/vg1/root")
+            .arg("/mnt")
+            .status().expect("mount failed to start");
+
+        Command::new("mkdir")
+            .arg("/mnt/home")
+            .status().expect("mkdir failed to start");
+
+        Command::new("mount")
+            .arg("/dev/vg1/home")
+            .arg("/mnt/home")
+            .status().expect("mount failed to start");
+
+        Command::new("mkdir")
+            .arg("/mnt/boot")
+            .status().expect("mkdir failed to start");
+
+        Command::new("mount")
+            .arg(format!("{:}2", opts.device.as_ref().unwrap()))
+            .arg("/mnt/boot")
+            .status().expect("mount failed to start");
     }
     
 }
@@ -343,7 +411,7 @@ fn main() {
     check_connectivity();
     let opts = Opt::from_args();
     println!("{:?}", &opts);
-    //Partition::create_system(&opts);
+    Partition::create_system(&opts);
    // println!("{:?}", &opts.file_name.unwrap());
     //Opt::lvm(&opts);
     //Opt::encryption(&opts);

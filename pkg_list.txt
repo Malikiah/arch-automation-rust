@@ -1,3 +1,4 @@
+arch-install-scripts
 mesa 
 xorg
 xorg-server
