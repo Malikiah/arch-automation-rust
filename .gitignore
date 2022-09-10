@@ -1,3 +1,1 @@
-target/debug/*
-target/CACHEDIR.TAG
-target/.rustc_info.json
+target
