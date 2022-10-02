@@ -3,6 +3,8 @@ use std::fs;
 use std::str;
 use regex::Regex;
 
+use crate::linux::Linux;
+
 use crate::Opt;
 
 pub struct Packages {
@@ -12,28 +14,26 @@ pub struct Packages {
 
 impl Packages {
 
-    pub fn location(opt: &Opt) -> String {
-        if opt.file_name.is_none() && opt.installation_type.as_ref().unwrap() == "FULL" {
-            let directory = Command::new("pwd")
-                .stdout(Stdio::piped())
-                .output()
-                .expect("pwd command failed to start");
-            // This regex is to remove the (\,",\n) characters from the pwd command
-            let regex = Regex::new(r#"(\\n|\\|")"#).unwrap();
-            // this converts the utf8 encoded vector into a string.
-            let directory = String::from_utf8(directory.stdout).unwrap();
-            
-            // This combines the string with a default file name to create a full path.
-            format!("{:}", regex.replace_all(&format!("{:?}/pkg_list.txt", &directory), ""))
-            
-        } else {
-
-            opt.file_name.as_ref().unwrap().to_string()
-
-        }
+    pub fn location<'a>(linux: &'a Linux) -> &'a str {
+        //if linux.packagesPath.is_none() && linux.installationType == "FULL" {
+        //    let directory = Command::new("pwd")
+        //        .stdout(Stdio::piped())
+        //        .output()
+        //        .expect("pwd command failed to start");
+        //    // This regex is to remove the (\,",\n) characters from the pwd command
+        //    let regex = Regex::new(r#"(\\n|\\|")"#).unwrap();
+        //    // this converts the utf8 encoded vector into a string.
+        //    let directory = String::from_utf8(directory.stdout).unwrap();
+        //    
+        //    // This combines the string with a default file name to create a full path.
+        //    format!("{:}", regex.replace_all(&format!("{:?}/pkg_list.txt", &directory), ""))
+        //    
+        //} else {
+        &linux.packages_path
+        //}
     }
 
-    pub fn get(package_location: String) -> Vec<String> {
+    pub fn get(package_location: &str) -> Vec<String> {
         println!("{:?}", package_location);
         let packages = fs::read(package_location)
             .expect("Should have been able to read the file");
@@ -47,14 +47,14 @@ impl Packages {
 
     }
 
-    pub fn install(packages: Vec<String>, package_manager: String, arch_chroot: bool) {
-        let packages = packages.clone();
-        let package_manager = package_manager.clone();
+    pub fn install(packages: Vec<String>, package_manager: String, linux: &Linux, arch_chroot: bool) {
+        //let packages = packages.clone();
+        //let package_manager = package_manager.clone();
         for package in packages.iter() {
             if package_manager == "pacman" {
                 if arch_chroot == true {
                     Command::new("arch-chroot")
-                        .arg("/mnt")
+                        .arg(&linux.mount_path)
                         .arg("pacman")
                         .arg("-Sy")
                         .arg("--noconfirm")

@@ -1,0 +1,12 @@
+/home/default/Documents/programming/rust/arch-automation/target/debug/deps/ping-31eb6077361c822c.rmeta: /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/lib.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/errors.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/mod.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/icmp.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/ipv4.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/ping.rs
+
+/home/default/Documents/programming/rust/arch-automation/target/debug/deps/libping-31eb6077361c822c.rlib: /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/lib.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/errors.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/mod.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/icmp.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/ipv4.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/ping.rs
+
+/home/default/Documents/programming/rust/arch-automation/target/debug/deps/ping-31eb6077361c822c.d: /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/lib.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/errors.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/mod.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/icmp.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/ipv4.rs /home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/ping.rs
+
+/home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/lib.rs:
+/home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/errors.rs:
+/home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/mod.rs:
+/home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/icmp.rs:
+/home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/packet/ipv4.rs:
+/home/default/.cargo/registry/src/github.com-1ecc6299db9ec823/ping-0.4.0/src/ping.rs:
