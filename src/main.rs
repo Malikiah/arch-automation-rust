@@ -3,6 +3,7 @@ use structopt::StructOpt;
 use std::fmt::{Debug};
 
 use linux::*;
+use crate::linux::grub;
 
 pub mod partition;
 pub mod packages;
@@ -12,6 +13,9 @@ pub mod linux;
 #[derive(StructOpt,Debug)]
 #[structopt(name = "Arch Automation")]
 pub struct Opt {
+    #[structopt(short = "u", long = "user")]
+    pub user: String,
+
     #[structopt(short = "l", long = "lvm")]
     pub lvm: bool,
 
@@ -37,20 +41,24 @@ fn main() {
     let opts = Opt::from_args();
 
     let linux = Linux {
-        mount_path: String::from("mnt"),
+        user: opts.user,
+        mount_path: String::from("/mnt"),
         name: String::from("computer"),
         encrypt: opts.encrypt,
         crypt_name: String::from("crypt"),
         use_lvm: opts.lvm,
-        device: String::from(opts.device),
+        device: opts.device,
         volume_group: "vg1",
         password: Some(opts.password),
-        timezone: String::from(opts.timezone),
-        packages_path: String::from(opts.packages_path),
+        timezone: opts.timezone,
+        packages_path: opts.packages_path,
     };
 
 //    println!("{:?}", &opts);
     Partition::create_system(&linux);
     arch::configure(&linux);
+    grub::install(&linux);
    
+    Linux::umount(vec!("-a"));
+    Linux::reboot();
 }

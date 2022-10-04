@@ -4,9 +4,11 @@ use std::marker::Copy;
 use crate::partition::Partition;
 
 pub mod arch;
+pub mod grub;
 
 #[derive(Clone)]
 pub struct Linux<'a> {
+    pub user: String,
     pub mount_path: String,
     pub name: String,
     pub encrypt: bool,
@@ -68,6 +70,7 @@ impl Linux<'_> {
 
 
     pub fn mount(device: &str, path: &str) {
+        println!("mounting {} to {}", device, path);
         Command::new("mount")
             .arg(device)
             .arg(path)
@@ -76,7 +79,7 @@ impl Linux<'_> {
 
     pub fn mkdir(directory: String) {
         Command::new("mkdir")
-            .arg("/mnt/home")
+            .arg(directory)
             .status().expect("mkdir failed to start");
     }
 
@@ -202,7 +205,7 @@ impl Linux<'_> {
         if soft == true {
             if arch_chroot == true {
                 Command::new("arch-chroot")
-                    .arg(format!("{:}", linux.mount_path))
+                    .arg(&linux.mount_path)
                     .arg("ln")
                     .arg("-sf")
                     .arg(format!("{:}", link_from))
@@ -215,7 +218,7 @@ impl Linux<'_> {
     pub fn genfstab(linux: &Linux) {
         Command::new("genfstab")
             .arg("-U")
-            .arg(format!("{:}", linux.mount_path))
+            .arg(&linux.mount_path)
             .arg(">>")
             .arg(format!("{:}/etc/fstab", linux.mount_path))
             .status()
@@ -225,7 +228,7 @@ impl Linux<'_> {
     pub fn hwclock(linux: &Linux, arch_chroot: bool) {
         if arch_chroot == true {
             Command::new("arch-chroot")
-                .arg(format!("{:}", linux.mount_path))
+                .arg(&linux.mount_path)
                 .arg("hwclock")
                 .arg("--systohc")
                 .status().expect("hwclock failed to start");
@@ -235,10 +238,57 @@ impl Linux<'_> {
     pub fn locale_gen(linux: &Linux, arch_chroot: bool){
         if arch_chroot == true {
             Command::new("arch-chroot")
-                .arg("/mnt")
+                .arg(&linux.mount_path)
                 .arg("locale-gen")
                 .status().expect("localegen failed to start");
         }
+    }
+
+    pub fn mkinitcpio(linux: &Linux){
+        Command::new("arch-chroot")
+            .arg(&linux.mount_path)
+            .arg("mkinitcpio")
+            .arg("-p")
+            .arg("linux")
+            .status().expect("mkinitcpio failed to start");
+    }
+
+    pub fn systemctl_start(service: String, linux: &Linux, arch_chroot: bool) {
+        if arch_chroot == true {
+            Command::new("arch-chroot")
+                .arg(&linux.mount_path)
+                .arg("systemctl")
+                .arg("enable")
+                .arg(service)
+                .status().expect("systemctl failed to start");
+        }
+    }
+
+    pub fn useradd(linux: &Linux, arch_chroot: bool) {
+        if arch_chroot == true{
+            Command::new("arch-chroot")
+                .arg(&linux.mount_path)
+                .arg("useradd")
+                .arg("-mG")
+                .arg("wheel")
+                .arg(&linux.user)
+                .status().expect("useradd failed to start");
+        }
+    }
+
+    pub fn passwd(linux: &Linux, arch_chroot: bool) {
+        if arch_chroot == true {
+            Command::new("arch-chroot")
+                .arg("passwd")
+                .arg(&linux.user)
+                .arg(linux.password.as_ref().unwrap().as_ref().unwrap())
+                .status().expect("passwd failed to start");
+        }
+    }
+
+    pub fn reboot() {
+        Command::new("reboot")
+            .status().expect("reboot failed to start");
     }
 
     pub fn check_connectivity() {

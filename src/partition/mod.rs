@@ -60,7 +60,7 @@ impl Partition<'_> {
             Linux::sgdisk(SgDiskOperation::Create, partition); 
         }
 
-        let boot_device = format!("{:}{:}", system_partition.boot_partition.device.clone(), system_partition.boot_partition.index.clone());
+        let boot_device = format!("{:}2", system_partition.boot_partition.device.clone());
         let boot_path = format!("{}/boot", linux.mount_path);
         Linux::mkfs(MkfsFormat::Fat32, &boot_device);
 

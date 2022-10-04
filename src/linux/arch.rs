@@ -1,5 +1,6 @@
 use std::process::{Command, Stdio};
 use crate::packages::Packages;
+use crate::linux::grub;
 use crate::linux::Linux;
 use crate::Opt;
 
@@ -45,4 +46,12 @@ pub fn configure(linux: &Linux) {
 
     let packages = Packages::get(&linux.packages_path);
     Packages::install(packages, "pacman".to_string(), &linux, true);
+    grub::install(&linux);
+
+    Linux::systemctl_start(String::from("NetworkManager"), &linux, true);
+    Linux::systemctl_start(String::from("bluetooth"), &linux, true);
+
+    Linux::useradd(&linux, true);
+
+    Linux::sed_replace(String::from("# %wheel ALL=(ALL) ALL"), String::from("%wheel ALL=(ALL) ALL"), String::from("/etc/sudoers"), true);
 }
