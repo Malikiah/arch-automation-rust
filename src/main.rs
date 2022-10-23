@@ -4,6 +4,7 @@ use std::fmt::{Debug};
 
 use linux::*;
 use crate::linux::grub;
+use crate::packages::Packages;
 
 pub mod partition;
 pub mod packages;
@@ -29,7 +30,7 @@ pub struct Opt {
     pub device: String,
 
     #[structopt(short = "f", long = "packages-path")]
-    pub packages_path: String,
+    pub packages_path: Option<String>,
 
     #[structopt(short = "t", long = "timezone")]
     pub timezone: String,
@@ -37,7 +38,8 @@ pub struct Opt {
 
 impl Opt {}
 
-fn main() { 
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> { 
     let opts = Opt::from_args();
 
     let linux = Linux {
@@ -51,14 +53,26 @@ fn main() {
         volume_group: "vg1",
         password: Some(opts.password),
         timezone: opts.timezone,
-        packages_path: opts.packages_path,
+        packages_path: Some(opts.packages_path),
     };
 
 //    println!("{:?}", &opts);
-    Partition::create_system(&linux);
-    arch::configure(&linux);
-    grub::install(&linux);
+    let packages = Packages::get("https://raw.githubusercontent.com/Malikiah/arch-automation-rust/main/pkg_list.txt").await;
+    
+    match packages {
+        Ok(vec_packages) => { 
+            for package in vec_packages {
+                println!("{:#?}", package.find("["));
+            }
+            //Packages::install(packages, "pacman".to_string(), &linux, true)
+        },
+        Err(error) => println!("{}", error),
+    }
+    //Partition::create_system(&linux);
+    //arch::configure(&linux);
+    //grub::install(&linux);
    
-    Linux::umount(vec!("-a"));
-    Linux::reboot();
+    //Linux::umount(vec!("-a"));
+    //Linux::reboot();
+    Ok(())
 }

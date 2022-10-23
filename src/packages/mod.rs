@@ -1,15 +1,10 @@
-use std::process::{Command, Stdio};
+use std::process::{Command};
 use std::fs;
 use std::str;
-use regex::Regex;
-
+use reqwest;
 use crate::linux::Linux;
 
-use crate::Opt;
-
 pub struct Packages {
-    location: String,
-    packages: Vec<String>,
 }
 
 impl Packages {
@@ -29,21 +24,35 @@ impl Packages {
         //    format!("{:}", regex.replace_all(&format!("{:?}/pkg_list.txt", &directory), ""))
         //    
         //} else {
-        &linux.packages_path
+        &linux.packages_path.as_ref().unwrap().as_ref().unwrap()
         //}
     }
 
-    pub fn get(package_location: &str) -> Vec<String> {
-        println!("{:?}", package_location);
-        let packages = fs::read(package_location)
-            .expect("Should have been able to read the file");
-        // This converts the list of from the file to a string.
-        let packages = str::from_utf8(&packages).unwrap();
+    pub async fn get(package_location: &str) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+        if package_location.starts_with("https://") || package_location.starts_with("http://") {
+            println!("here");
+            let packages = reqwest::get(package_location)
+                            .await?
+                            .text()
+                            .await?;
+            println!("{:#?}", packages);
+            println!("test");
+            Ok(packages
+                .split(char::is_whitespace)
+                .map(ToString::to_string)
+                .collect::<Vec<_>>())
+        } else {
+            println!("{:?}", package_location);
+            let packages = fs::read(package_location)
+                .expect("Should have been able to read the file");
+            // This converts the list of from the file to a string.
+            let packages = str::from_utf8(&packages).unwrap();
+            Ok(packages
+                .split(char::is_whitespace)
+                .map(ToString::to_string)
+                .collect::<Vec<_>>())
+        }
         // This takes a string and creates a vector of Strings based on whitespace.
-        packages
-            .split(char::is_whitespace)
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
 
     }
 
@@ -78,6 +87,12 @@ impl Packages {
                         .arg("--noconfirm")
                         .status().expect("pacstrap command failed to start");
             } else if package_manager == "yay" {
+                    Command::new("yay")
+                        .arg("-Sy")
+                        .arg("--noconfirm")
+                        .arg(package)
+                        .status().expect("yay command failed to start");
+            } else if package_manager == "aura" {
                     Command::new("yay")
                         .arg("-Sy")
                         .arg("--noconfirm")

@@ -1,7 +1,3 @@
-use std::process::{Command, Stdio};
-
-use crate::Opt;
-use crate::packages::Packages;
 use crate::linux::Linux;
 
 use crate::linux::CryptOperation;

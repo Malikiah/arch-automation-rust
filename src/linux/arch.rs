@@ -4,7 +4,7 @@ use crate::linux::grub;
 use crate::linux::Linux;
 use crate::Opt;
 
-pub fn configure(linux: &Linux) {
+pub async fn configure(linux: &Linux<'_>) {
     let pacstrap_packages = vec!["base", "base-devel", "linux", "linux-firmware", "nvim", "amd-ucode", "lvm2", "archlinux-keyring"].into_iter().map(|s| s.to_owned()).collect();
     Packages::install(pacstrap_packages, String::from("pacstrap"), &linux, false);
     Linux::genfstab(&linux);
@@ -44,14 +44,23 @@ pub fn configure(linux: &Linux) {
     Linux::sed_to_file(String::from("computer"), String::from("/etc/hostname"), &linux, true);
     Linux::sed_to_file(String::from(r#"127.0.0.1   localhost\n::1    localhost\n127.0.0.1 computer.localdomain computer"#), String::from("/etc/hosts"), &linux, true);
 
-    let packages = Packages::get(&linux.packages_path);
-    Packages::install(packages, "pacman".to_string(), &linux, true);
-    grub::install(&linux);
+    if linux.packages_path.is_some() {
+        let packages = Packages::get(&linux.packages_path.as_ref().unwrap().as_ref().unwrap()).await;
+        match packages {
+            Ok(packages) => { 
+                Packages::install(packages, "pacman".to_string(), &linux, true)
+            },
+            Err(error) => println!("{}", error),
+        }
+    }
 
     Linux::systemctl_start(String::from("NetworkManager"), &linux, true);
     Linux::systemctl_start(String::from("bluetooth"), &linux, true);
+    Linux::systemctl_start(String::from("libvirtd"), &linux, true);
+
 
     Linux::useradd(&linux, true);
+    Linux::passwd(&linux, true);
 
     Linux::sed_replace(String::from("# %wheel ALL=(ALL) ALL"), String::from("%wheel ALL=(ALL) ALL"), String::from("/etc/sudoers"), true);
 }

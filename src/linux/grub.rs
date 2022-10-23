@@ -1,5 +1,6 @@
 use std::process::Command;
 use crate::linux::Linux;
+use std::str;
 
 
     // edit /etc/mkinitcpio.conf to include encrypt lvm2 before the filesystems hook
@@ -18,7 +19,7 @@ use crate::linux::Linux;
     // reboot
     //
 pub fn install(linux: &Linux) {
-    Linux::sed_replace(String::from("filesystems"), String::from("encrypt lvm2 filesystems"), String::from("/etc/mkinitcpio.conf"), true);
+    //Linux::sed_replace(String::from("filesystems"), String::from("encrypt lvm2 filesystems"), String::from("/etc/mkinitcpio.conf"), true);
     Linux::mkinitcpio(&linux);
 
     Command::new("arch-chroot")
@@ -36,10 +37,10 @@ pub fn install(linux: &Linux) {
         .arg("UUID")
         .arg("-o")
         .arg("value")
-        .arg(&linux.device)
-        .status().expect("blkid failed to start");
+        .arg(format!("{}1", &linux.device))
+        .output();
 
-    Linux::sed_replace(String::from(r#"GRUB_CMDLINE_LINUX="""#), format!(r#"GRUB_CMDLINE_LINUX="cryptdevice=UUID={}:cryptlvm root=/dev/{}/root""#, uuid, &linux.volume_group), String::from("/etc/default/grub"),  true);
+    Linux::sed_replace(String::from(r#"GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 quiet""#), format!(r#"GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 cryptdevice=UUID={}:{}:allow-discards quiet""#, str::from_utf8(&uuid.unwrap().stdout).unwrap().trim(), &linux.volume_group), String::from("/etc/default/grub"),  true);
 
     Command::new("arch-chroot")
         .arg(&linux.mount_path)

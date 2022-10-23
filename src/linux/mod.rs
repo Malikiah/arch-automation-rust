@@ -18,7 +18,7 @@ pub struct Linux<'a> {
     pub device: String,
     pub password: Option<Option<String>>,
     pub timezone: String,
-    pub packages_path: String,
+    pub packages_path: Option<Option<String>>,
 }
 
 
@@ -45,12 +45,14 @@ pub enum MkfsFormat {
 impl Linux<'_> {
     pub fn sed_replace(search: String, replace: String, file: String, arch_chroot: bool) {
         if arch_chroot == true {
-            let search_replace = format!("s/{:}/{:}/g", search, replace);
+            let search_replace = format!("s/{}/{}/g", search, replace);
+            println!("{}", search_replace);
+
             Command::new("arch-chroot")
                 .arg("/mnt")
                 .arg("sed")
                 .arg("-i")
-                .arg(search_replace)
+                .arg(format!(r#"{}"#, search_replace))
                 .arg(file)
                 .status().expect("sed failed to start");
         }
