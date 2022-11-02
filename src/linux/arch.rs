@@ -6,7 +6,7 @@ use crate::Opt;
 
 pub async fn configure(linux: &Linux<'_>) {
     let pacstrap_packages = vec!["base", "base-devel", "linux", "linux-firmware", "nvim", "amd-ucode", "lvm2", "archlinux-keyring"].into_iter().map(|s| s.to_owned()).collect();
-    Packages::install(pacstrap_packages, String::from("pacstrap"), &linux, false);
+    Packages::install(pacstrap_packages, &linux, false);
     Linux::genfstab(&linux);
     //arch-chroot /mnt
     //ln -sf /usr/share/zoneinfo{opt.timezone} /etc/localtime
@@ -44,14 +44,28 @@ pub async fn configure(linux: &Linux<'_>) {
     Linux::sed_to_file(String::from("computer"), String::from("/etc/hostname"), &linux, true);
     Linux::sed_to_file(String::from(r#"127.0.0.1   localhost\n::1    localhost\n127.0.0.1 computer.localdomain computer"#), String::from("/etc/hosts"), &linux, true);
 
-    if linux.packages_path.is_some() {
-        let packages = Packages::get(&linux.packages_path.as_ref().unwrap().as_ref().unwrap()).await;
+    if linux.packages_path.as_ref().unwrap().is_some() {
+        println!("{:#?}", linux.packages_path);
+        let packages = Packages::get(linux.packages_path.as_ref().unwrap().as_ref().unwrap()).await;
+        
         match packages {
-            Ok(packages) => { 
-                Packages::install(packages, "pacman".to_string(), &linux, true)
+            Ok(value) => { 
+                Packages::install(value, &linux, true)
             },
             Err(error) => println!("{}", error),
         }
+
+    } else {
+
+        let packages = Packages::get("https://raw.githubusercontent.com/Malikiah/arch-automation-rust/main/pkg_list.txt").await;
+        
+        match packages {
+            Ok(value) => { 
+                Packages::install(value, &linux, true)
+            },
+            Err(error) => println!("{}", error),
+        }
+
     }
 
     Linux::systemctl_start(String::from("NetworkManager"), &linux, true);

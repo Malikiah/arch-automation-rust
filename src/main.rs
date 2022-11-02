@@ -23,7 +23,7 @@ pub struct Opt {
     #[structopt(short = "e", long = "encrypt")]
     pub encrypt: bool,
     
-    #[structopt(short = "p", long = "password")]
+    #[structopt(short = "p", long = "password")]    
     pub password: Option<String>,
 
     #[structopt(short = "d", long = "device")]
@@ -37,6 +37,7 @@ pub struct Opt {
 }
 
 impl Opt {}
+
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> { 
@@ -57,20 +58,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
 //    println!("{:?}", &opts);
-    let packages = Packages::get("https://raw.githubusercontent.com/Malikiah/arch-automation-rust/main/pkg_list.txt").await;
-    
-    match packages {
-        Ok(vec_packages) => { 
-            for package in vec_packages {
-                println!("{:#?}", package.find("["));
-            }
-            //Packages::install(packages, "pacman".to_string(), &linux, true)
-        },
-        Err(error) => println!("{}", error),
-    }
-    //Partition::create_system(&linux);
-    //arch::configure(&linux);
-    //grub::install(&linux);
+//    if linux.packages_path.as_ref().unwrap().is_some() {
+//        println!("{:#?}", linux.packages_path);
+//        let packages = Packages::get(linux.packages_path.as_ref().unwrap().as_ref().unwrap()).await;
+//        
+//        match packages {
+//            Ok(value) => { 
+//                Packages::install(value, &linux, true)
+//            },
+//            Err(error) => println!("{}", error),
+//        }
+//
+//    } else {
+//
+//        let packages = Packages::get("https://raw.githubusercontent.com/Malikiah/arch-automation-rust/main/pkg_list.txt").await;
+//        
+//        match packages {
+//            Ok(value) => { 
+//                Packages::install(value, &linux, true)
+//            },
+//            Err(error) => println!("{}", error),
+//        }
+//
+//    }
+    Partition::create_system(&linux);
+    arch::configure(&linux).await;
+    grub::install(&linux);
    
     //Linux::umount(vec!("-a"));
     //Linux::reboot();

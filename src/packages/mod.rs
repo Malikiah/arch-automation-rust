@@ -4,7 +4,13 @@ use std::str;
 use reqwest;
 use crate::linux::Linux;
 
-pub struct Packages {
+pub struct Packages;
+
+enum PackageManager {
+    Pacstrap,
+    Pacman,
+    Yay,
+    Aura,
 }
 
 impl Packages {
@@ -56,49 +62,65 @@ impl Packages {
 
     }
 
-    pub fn install(packages: Vec<String>, package_manager: String, linux: &Linux, arch_chroot: bool) {
-        //let packages = packages.clone();
-        //let package_manager = package_manager.clone();
-        for package in packages.iter() {
-            if package_manager == "pacman" {
-                if arch_chroot == true {
-                    Command::new("arch-chroot")
-                        .arg(&linux.mount_path)
-                        .arg("pacman")
-                        .arg("-Sy")
-                        .arg("--noconfirm")
-                        .arg(package)
-                        // spawn is for running a command and not waiting for it to finish.
-                        // .spawn()
-                        .status().expect("pacman command failed to start");
-                } else {
-                    Command::new("pacman")
-                        .arg("-Sy")
-                        .arg("--noconfirm")
-                        .arg(package)
-                        // spawn is for running a command and not waiting for it to finish.
-                        // .spawn()
-                        .status().expect("pacman command failed to start");
-                }
-            } else if package_manager == "pacstrap" {
-                    Command::new("pacstrap")
+    pub fn install(packages: Vec<String>, linux: &Linux, arch_chroot: bool) {
+            
+        let mut package_manager: PackageManager = PackageManager::Pacstrap;
+
+        for package in packages {
+            if package.contains("[pacman]") { package_manager = PackageManager::Pacman; }
+            if package.contains("[yay]") { package_manager = PackageManager::Yay; }
+            if package.contains("[aura]") { package_manager = PackageManager::Aura; }
+
+            match package_manager {
+                 PackageManager::Pacstrap => {
+                     
+                     Command::new("pacstrap")
                         .arg("/mnt")
                         .arg(package)
                         .arg("--noconfirm")
                         .status().expect("pacstrap command failed to start");
-            } else if package_manager == "yay" {
+                 },
+                 PackageManager::Pacman => {
+                    println!("pacman");
+                    if arch_chroot == true {
+                        Command::new("arch-chroot")
+                            .arg(&linux.mount_path)
+                            .arg("pacman")
+                            .arg("-Sy")
+                            .arg("--noconfirm")
+                            .arg(package)
+                            // spawn is for running a command and not waiting for it to finish.
+                            // .spawn()
+                            .status().expect("pacman command failed to start");
+                    } else {
+                        Command::new("pacman")
+                            .arg("-Sy")
+                            .arg("--noconfirm")
+                            .arg(package)
+                            // spawn is for running a command and not waiting for it to finish.
+                            // .spawn()
+                            .status().expect("pacman command failed to start");
+                    }
+                 },
+                 PackageManager::Yay => {
+                    println!("yay");
                     Command::new("yay")
                         .arg("-Sy")
                         .arg("--noconfirm")
                         .arg(package)
                         .status().expect("yay command failed to start");
-            } else if package_manager == "aura" {
-                    Command::new("yay")
+                 },
+                 PackageManager::Aura => {
+                    println!("aura");
+                    Command::new("aura")
                         .arg("-Sy")
                         .arg("--noconfirm")
                         .arg(package)
                         .status().expect("yay command failed to start");
+                 },
             }
         }
+        //let packages = packages.clone();
+        //let package_manager = package_manager.clone();
     }
 }

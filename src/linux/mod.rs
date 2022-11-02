@@ -2,6 +2,7 @@ use std::process::{Command, Stdio};
 use std::clone::Clone;
 use std::marker::Copy;
 use crate::partition::Partition;
+use reqwest;
 
 pub mod arch;
 pub mod grub;
@@ -82,7 +83,7 @@ impl Linux<'_> {
     pub fn mkdir(directory: String) {
         Command::new("mkdir")
             .arg(directory)
-            .status().expect("mkdir failed to start");
+        .status().expect("mkdir failed to start");
     }
 
     pub fn umount(paths: Vec<&str>) {
@@ -300,4 +301,5 @@ impl Linux<'_> {
             .status()
             .expect("ping: connect: Network is unreachable")})();
     }
+
 }
