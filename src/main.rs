@@ -85,7 +85,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     arch::configure(&linux).await;
     grub::install(&linux);
    
-    //Linux::umount(vec!("-a"));
-    //Linux::reboot();
+    Linux::umount(vec!("-a"));
+    Linux::reboot();
     Ok(())
 }

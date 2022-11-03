@@ -1,8 +1,10 @@
 use std::process::{Command};
 use std::fs;
 use std::str;
+use std::thread::available_parallelism;
 use reqwest;
 use crate::linux::Linux;
+
 
 pub struct Packages;
 
@@ -64,11 +66,26 @@ impl Packages {
 
     pub fn install(packages: Vec<String>, linux: &Linux, arch_chroot: bool) {
             
+        let cpu_count = available_parallelism().unwrap().get();
+        
         let mut package_manager: PackageManager = PackageManager::Pacstrap;
+
+        Linux::sed_replace(String::from("#ParallelDownloads = 5"), String::from(format!("ParallelDownloads = {}", cpu_count)), String::from("/etc/pacman.conf"), true);
 
         for package in packages {
             if package.contains("[pacman]") { package_manager = PackageManager::Pacman; }
-            if package.contains("[yay]") { package_manager = PackageManager::Yay; }
+            if package.contains("[yay]") { 
+                Command::new("arch-chroot")
+                    .arg("/mnt")
+                    .arg("git")
+                    .arg("clone")
+                    .arg("https://aur.archlinux.org/yay.git")
+                    .status().expect("git command failed to start");
+                Command::new("makepkg")
+                    .arg("-si")
+                    .current_dir("./yay")
+                    .status().expect("makepkg command failed to start");
+                package_manager = PackageManager::Yay; }
             if package.contains("[aura]") { package_manager = PackageManager::Aura; }
 
             match package_manager {
